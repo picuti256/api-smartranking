@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CriarJogadorDto } from './dtos/criar-jogador.dto';
+import { AtualizarJogadorDto } from './dtos/atualizar-jogar.dto';
 import { Jogador } from './interfaces/jogador.interface';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -31,7 +32,7 @@ export class JogadoresService {
 
   async atualizarJogador(
     _id: string,
-    criarJogadorDto: CriarJogadorDto,
+    atualizarJogador: AtualizarJogadorDto,
   ): Promise<void> {
     const jogadorEncontrado = await this.jogadorModel.findOne({ _id }).exec();
 
@@ -40,7 +41,7 @@ export class JogadoresService {
     }
 
     await this.jogadorModel
-      .findOneAndUpdate({ _id }, { $set: criarJogadorDto })
+      .findOneAndUpdate({ _id }, { $set: atualizarJogador })
       .exec();
   }
 
