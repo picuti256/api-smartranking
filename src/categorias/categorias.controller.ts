@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -15,35 +16,43 @@ import { AtualizarCategoriaDto } from './dtos/atualizar-categoria.dto';
 
 @Controller('api/v1/categorias')
 export class CategoriasController {
-  constructor(private readonly categoriaService: CategoriasService) {}
+  constructor(private readonly categoriasService: CategoriasService) {}
 
   @Post()
   @UsePipes(ValidationPipe)
   async criarCategoria(
     @Body() criarCategoriaDto: CriarCategoriaDto,
   ): Promise<Categoria> {
-    return await this.categoriaService.criarCategoria(criarCategoriaDto);
+    return await this.categoriasService.criarCategoria(criarCategoriaDto);
   }
 
   @Get()
-  async consultarCategorias(): Promise<Array<Categoria>> {
-    return await this.categoriaService.consultarTodasCategorias();
-  }
+  async consultarCategorias(
+    @Query() params: string[],
+  ): Promise<Array<Categoria> | Categoria> {
+    const idCategoria = params['idCategoria'];
+    const idJogador = params['idJogador'];
 
-  @Get('/:categoria')
-  async consultCategoriaPeloId(
-    @Param('categoria') categoria: string,
-  ): Promise<Categoria> {
-    return await this.categoriaService.consultarCategoriaPeloId(categoria);
+    if (idCategoria) {
+      return await this.categoriasService.consultarCategoriaPeloId(idCategoria);
+    }
+
+    if (idJogador) {
+      return await this.categoriasService.consultarCategoriaDoJogador(
+        idJogador,
+      );
+    }
+
+    return await this.categoriasService.consultarTodasCategorias();
   }
 
   @Put('/:categoria')
   @UsePipes(ValidationPipe)
-  async atualizaCategoria(
+  async atualizarCategoria(
     @Body() atualizarCategoriaDto: AtualizarCategoriaDto,
     @Param('categoria') categoria: string,
   ): Promise<void> {
-    return await this.categoriaService.atualizaCategoria(
+    await this.categoriasService.atualizarCategoria(
       categoria,
       atualizarCategoriaDto,
     );
@@ -51,6 +60,6 @@ export class CategoriasController {
 
   @Post('/:categoria/jogadores/:idJogador')
   async atribuirCategoriaJogador(@Param() params: string[]): Promise<void> {
-    return await this.categoriaService.atribuirCategoriaJogador(params);
+    return await this.categoriasService.atribuirCategoriaJogador(params);
   }
 }

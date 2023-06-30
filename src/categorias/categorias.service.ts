@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -23,12 +24,12 @@ export class CategoriasService {
   ): Promise<Categoria> {
     const { categoria } = criarCategoriaDto;
 
-    const categoriaEncontrada = await this.categoriaModel.findOne({
-      categoria,
-    });
+    const categoriaEncotrada = await this.categoriaModel
+      .findOne({ categoria })
+      .exec();
 
-    if (categoriaEncontrada) {
-      throw new BadGatewayException(`Categoria ${categoria} já cadastrada`);
+    if (categoriaEncotrada) {
+      throw new BadRequestException(`Categoria ${categoria} já cadastrada!`);
     }
 
     const categoriaCriada = new this.categoriaModel(criarCategoriaDto);
@@ -36,72 +37,92 @@ export class CategoriasService {
   }
 
   async consultarTodasCategorias(): Promise<Array<Categoria>> {
-    return await this.categoriaModel.find().populate('jogadores');
+    return await this.categoriaModel.find().populate('jogadores').exec();
   }
 
   async consultarCategoriaPeloId(categoria: string): Promise<Categoria> {
-    const categoriaEncontrada = await this.categoriaModel.findOne({
-      categoria,
-    });
+    const categoriaEncontrada = await this.categoriaModel
+      .findOne({ categoria })
+      .exec();
 
     if (!categoriaEncontrada) {
-      throw new NotFoundException(
-        `A categoria ${categoria} informada não foi encontrada.`,
-      );
+      throw new NotFoundException(`Categoria ${categoria} não encontrada!`);
     }
+
     return categoriaEncontrada;
   }
 
-  async atualizaCategoria(
-    categoria: string,
-    atualizarCategoria: AtualizarCategoriaDto,
-  ): Promise<void> {
-    const categoriaEncontrada = await this.categoriaModel.findOne({
-      categoria,
-    });
+  async consultarCategoriaDoJogador(idJogador: any): Promise<Categoria> {
+    const jogadores = await this.jogadoresService.consultarTodosJogadores();
 
-    if (!categoriaEncontrada) {
-      throw new NotFoundException(`Categoria ${categoria} não encontrada.`);
+    const jogadorFilter = jogadores.filter(
+      (jogador) => jogador._id == idJogador,
+    );
+
+    if (jogadorFilter.length == 0) {
+      throw new BadRequestException(`O id ${idJogador} não é um jogador!`);
     }
 
-    await this.categoriaModel.findOneAndUpdate(
-      { categoria },
-      { $set: atualizarCategoria },
-    );
+    return await this.categoriaModel
+      .findOne()
+      .where('jogadores')
+      .in(idJogador)
+      .exec();
+  }
+
+  async atualizarCategoria(
+    categoria: string,
+    atualizarCategoriaDto: AtualizarCategoriaDto,
+  ): Promise<void> {
+    const categoriaEncontrada = await this.categoriaModel
+      .findOne({ categoria })
+      .exec();
+
+    if (!categoriaEncontrada) {
+      throw new NotFoundException(`Categoria ${categoria} não encontrada!`);
+    }
+
+    await this.categoriaModel
+      .findOneAndUpdate({ categoria }, { $set: atualizarCategoriaDto })
+      .exec();
   }
 
   async atribuirCategoriaJogador(params: string[]): Promise<void> {
     const categoria = params['categoria'];
     const idJogador = params['idJogador'];
 
-    const categoriaEncontrada = await this.categoriaModel.findOne({
-      categoria,
-    });
-
-    const jogadorJaCadastrado = await this.categoriaModel
-      .find({ categoria })
+    const categoriaEncontrada = await this.categoriaModel
+      .findOne({ categoria })
+      .exec();
+    const jogadorJaCadastradoCategoria = await this.categoriaModel
+      .findOne()
       .where('jogadores')
-      .in(idJogador);
+      .in(idJogador)
+      .exec();
 
-    await this.jogadoresService.consultarJogadorPeloId(idJogador);
+    const jogadores = await this.jogadoresService.consultarTodosJogadores();
 
-    if (!categoriaEncontrada) {
-      throw new BadRequestException(`Categoria ${categoria} não encontrada`);
+    const jogadorFilter = jogadores.filter(
+      (jogador) => jogador._id == idJogador,
+    );
+
+    if (jogadorFilter.length == 0) {
+      throw new BadRequestException(`O id ${idJogador} não é um jogador!`);
     }
 
-    if (jogadorJaCadastrado.length > 0) {
-      const nomeJogador = await this.jogadoresService.consultarJogadorPeloId(
-        idJogador,
-      );
+    if (!categoriaEncontrada) {
+      throw new BadRequestException(`Categoria ${categoria} não cadastrada!`);
+    }
+
+    if (jogadorJaCadastradoCategoria) {
       throw new BadRequestException(
-        `Jogador ${nomeJogador.nome} já está cadastrado na categoria ${categoria}`,
+        `Jogador ${idJogador} já cadastrado na Categoria ${jogadorJaCadastradoCategoria.categoria}!`,
       );
     }
 
     categoriaEncontrada.jogadores.push(idJogador);
-    await this.categoriaModel.findOneAndUpdate(
-      { categoria },
-      { $set: categoriaEncontrada },
-    );
+    await this.categoriaModel
+      .findOneAndUpdate({ categoria }, { $set: categoriaEncontrada })
+      .exec();
   }
 }
