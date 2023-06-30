@@ -58,7 +58,7 @@ export class JogadoresService {
     return jogadorEncontrado;
   }
 
-  async deletarJogar(_id: string): Promise<any> {
+  async deletarJogador(_id: string): Promise<any> {
     const jogadorEncontrado = await this.jogadorModel.findOne({ _id }).exec();
 
     if (!jogadorEncontrado) {
